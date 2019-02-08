@@ -1,4 +1,29 @@
-module.exports.post = (req, res) => {
+const Validator = require('jsonschema').Validator
+const Promise = require('bluebird');
+
+const dataSchema = {
+  id: '/spotifyData',
+  type: 'object',
+  properties: {
+    user_id: {type: 'number'},
+    timestamp: {type: 'string', format: 'date-time'},
+    songs: {type: 'array', items: { $ref: '/song' }}
+  },
+}
+
+const songSchema = {
+  id: '/song',
+  type: 'object',
+  properties: {
+    title: {type: 'string'},
+    artist: {type: 'string'},
+  },
+}
+
+const v = new Validator();
+v.addSchema(songSchema, songSchema.id);
+
+module.exports.post = async (req, res) => {
   const {
     User,
     Song,
@@ -6,7 +31,41 @@ module.exports.post = (req, res) => {
     Listen,
   } = req.app.models;
 
-  console.log(req.body);
+
+  if (!v.validate(req.body, dataSchema).valid) {
+    return res.status(400).send({error: 'Invalid data schema'});
+  }
+
+  const {
+    user_id,
+    timestamp,
+    songs,
+  } = req.body;
+
+  const [foundUser, userCreated] = await User.findOrCreate({where: {id: user_id}})
+
+  await Promise.all(Promise.mapSeries(songs, async (song) => {
+    const {
+      title,
+      artist
+    } = song;
+
+    const [foundArtist, artistCreated] = await Artist.findOrCreate({where: {name: artist}})
+    const [foundSong, songCreated] = await Song.findOrCreate({
+      where: {
+        name: title,
+        artistId: foundArtist.get('id')
+      }
+    });
+
+    const newListen = await Listen.create({
+      timestamp,
+      userId: foundUser.get('id'),
+      songId: foundSong.get('id'),
+      artistId: foundArtist.get('id'),
+    })
+
+  }))
 
   res.send(200, req.body);
   /*

@@ -23,16 +23,18 @@ module.exports = (sequelize) => {
 
   User.hasMany(Listen);
   Song.hasMany(Listen);
+  Artist.hasMany(Listen);
   Listen.belongsTo(User, {foreignKey: {allowNull: false}});
   Listen.belongsTo(Song, {foreignKey: {allowNull: false}});
+  Listen.belongsTo(Artist, {foreignKey: {allowNull: false}});
 
   const models = [ User, Artist, Song, Listen, ];
 
   const sync = () => {
     if (process.env.IS_TEST)  {
-      return Promise.each(models, model => model.sync({force: true, match: /_test$/ }))
+      return Promise.mapSeries(models, model => model.sync({force: true, match: /_test$/ }))
     } else {
-      return Promise.each(models, model => model.sync())
+      return Promise.mapSeries(models, model => model.sync())
     }
   }
 
