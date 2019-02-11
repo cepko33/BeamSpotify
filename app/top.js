@@ -1,26 +1,19 @@
 const Validator = require('jsonschema').Validator
 const Promise = require('bluebird');
+const moment = require('moment');
 
+/*
 const dataSchema = {
-  id: '/spotifyData',
+  id: '/dateParams',
   type: 'object',
   properties: {
-    user_id: {type: 'number'},
-    timestamp: {type: 'string', format: 'date-time'},
-    songs: {type: 'array', items: { $ref: '/song' }}
+    beforeDate: {type: 'string', format: 'date-time'},
+    afterDate: {type: 'string', format: 'date-time'},
   },
 }
 
-const songSchema = {
-  id: '/song',
-  type: 'object',
-  properties: {
-    title: {type: 'string'},
-    artist: {type: 'string'},
-  },
-}
-
-//const v = new Validator();
+const v = new Validator();
+*/
 //v.addSchema(songSchema, songSchema.id);
 
 module.exports.get = async (req, res) => {
@@ -31,15 +24,30 @@ module.exports.get = async (req, res) => {
     Listen,
   } = req.app.models;
 
+  let {
+    beforeDate,
+    afterDate,
+  } = req.query;
+
+  let whereConditions;
+  let bind = {};
+
   const sequelize = req.app.sequelize;
   const Sequelize = sequelize.Sequelize;
 
+  if (beforeDate || afterDate) {
+    whereConditions = `
+      ${beforeDate ? 'AND listens.timestamp <= $beforeDate' : ''}
+      ${afterDate ? 'AND listens.timestamp >= $afterDate' : ''}
+    `;
 
-  /*
-  if (!v.validate(req.body, dataSchema).valid) {
-    return res.status(400).send({error: 'Invalid data schema'});
+    if (beforeDate) {
+      bind.beforeDate = moment(beforeDate).toString();
+    }
+    if (afterDate) {
+      bind.afterDate = moment(afterDate).toString();
+    }
   }
-  */
 
   let [popularArtists, queryData] = await sequelize.query(`
     SELECT
@@ -50,12 +58,18 @@ module.exports.get = async (req, res) => {
       FROM (
         SELECT id
         FROM listens
-        WHERE listens."artistId" = artists.id
-      ) AS temp
+        WHERE listens."artistId" = artists."id"
+        ${afterDate ? `AND listens."timestamp" > '${bind.afterDate}'` : ''}
+        ${beforeDate ? `AND listens."timestamp" < '${bind.beforeDate}'` : ''}
+      ) AS count
     ) AS count
     FROM artists
     ORDER BY count DESC
-  `)
+  `,
+  ).catch(err => {
+    console.error(err);
+    return res.send(500);
+  })
 
   res.send(popularArtists);
 }

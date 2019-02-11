@@ -1,24 +1,34 @@
 const request = require('supertest')
 const assert = require('chai').assert;
 const Promise = require('bluebird');
+const moment = require('moment');
 
+// Enforcing some default env vars for running test suite
 process.env.PORT = 15234;
 process.env.DB = 'beam_test';
 process.env.IS_TEST = true;
 
 describe('starting express', () => {
   let server;
+
   let user, artist, song, listen;
 
   const {
     init,
-    app
+    app,
   } = require('../index.js');
 
+  // Start a new server instance before each test
   beforeEach((done) => {
-    init().then(serverObj => {
-      server = serverObj;
-      ({user, artist, song, listen} = app.sequelize.models);
+    init().then(serverInstance => {
+      server = serverInstance;
+      // Helpful model imports
+      ({
+        user,
+        artist,
+        song,
+        listen,
+      } = app.sequelize.models);
       done();
     });
   });
@@ -80,7 +90,6 @@ describe('starting express', () => {
   })
 
   it('Ingests some listens', async () => {
-
     let generateIngest = (json) => {
       return request(server)
         .post('/ingest')
@@ -88,79 +97,65 @@ describe('starting express', () => {
         .set('Accept', 'application/json')
     }
 
-    await Promise.all(inputJSON.map(generateIngest));
+    await Promise.all(inputJSON.map(generateIngest)).catch(err => {
+      console.error(err);
+    });
 
     let top = await request(server)
       .get('/top').catch((err) => console.error(err))
 
     console.log(top.body);
 
-  });
+    top = await request(server)
+      .get(`/top?beforeDate=${moment('09/09/2019').toString()}`)
+      .catch((err) => console.error(err))
 
-})
+    console.log(top.body);
+  });
+});
 
 
 const inputJSON = [
-  {
-    user_id: 523,
-    timestamp: new Date('09/10/2019'),
-    songs: [
-      {
-        title: 'No Sentiment',
-        artist: 'Cloud Nothings',
-      },
-      {
-        title: 'No Future / No Past',
-        artist: 'Cloud Nothings',
-      },
-      {
-        title: 'It\'s Halloween',
-        artist: 'The Shaggs',
-      },
-    ]
-  },
-  {
-    user_id: 423,
+  { user_id: 423,
     timestamp: new Date('08/31/2019'),
     songs: [
-      {
-        title: 'No Sentiment',
-        artist: 'Cloud Nothings',
-      },
-      {
-        title: 'Faceshopping',
-        artist: 'SOPHIE',
-      },
-      {
-        title: 'Dressed For Space',
-        artist: 'TR/ST',
-      },
+      { title: 'No Sentiment', artist: 'Cloud Nothings', },
+      { title: 'Faceshopping', artist: 'SOPHIE', },
+      { title: 'Dressed For Space', artist: 'TR/ST', },
     ]
   },
-  {
-    user_id: 513,
-    timestamp: new Date('09/09/2019'),
+  { user_id: 332,
+    timestamp: new Date('09/01/2019'),
     songs: [
-      {
-        title: 'My Friend The Forest',
-        artist: 'Nils Frahm',
-      },
-      {
-        title: 'Momentum',
-        artist: 'Nils Frahm',
-      },
-      {
-        title: 'Sun Lips',
-        artist: 'Black Moth Super Rainbow',
-      },
-      {
-        title: 'Old Yes',
-        artist: 'Black Moth Super Rainbow',
-      },
-      {
-        title: 'Dressed For Space',
-        artist: 'TR/ST',
-      },
+      { title: 'No Sentiment', artist: 'Cloud Nothings', },
+      { title: 'Faceshopping', artist: 'SOPHIE', },
+      { title: 'Dressed For Space', artist: 'TR/ST', },
+    ]
+  },
+  { user_id: 222,
+    timestamp: new Date('09/03/2019'),
+    songs: [
+      { title: 'No Sentiment', artist: 'Cloud Nothings', },
+      { title: 'No Future / No Past', artist: 'Cloud Nothings', },
+      { title: 'It\'s Halloween', artist: 'The Shaggs', },
+    ]
+  },
+  { user_id: 523,
+    timestamp: new Date('09/21/2019'),
+    songs: [
+      { title: 'No Sentiment', artist: 'Cloud Nothings', },
+      { title: 'No Future / No Past', artist: 'Cloud Nothings', },
+      { title: 'It\'s Halloween', artist: 'The Shaggs', },
+    ]
+  },
+  { user_id: 513,
+    timestamp: new Date('09/24/2019'),
+    songs: [
+      { title: 'My Friend The Forest', artist: 'Nils Frahm', },
+      { title: 'Momentum', artist: 'Nils Frahm', },
+      { title: 'Sun Lips', artist: 'Black Moth Super Rainbow', },
+      { title: 'Old Yes', artist: 'Black Moth Super Rainbow', },
+      { title: 'Dressed For Space', artist: 'TR/ST', },
     ]
   }
 ];
@@ -175,9 +170,9 @@ let dataSchema = {
       genre: String,
       album: String,
       date_released: Date,
-      playlist: String ,
-      total_streams: Int
-      ,global_streams: Int,
+      playlist: String,
+      total_streams: Int,
+      global_streams: Int,
       us_streams: Int
     }
   ]

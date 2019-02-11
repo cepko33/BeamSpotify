@@ -1,6 +1,5 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const router = require('./app/router.js');
 
 const PORT = process.env.PORT || 3333;
 
@@ -17,7 +16,7 @@ const init = async () => {
   app.models = models;
   app.use(bodyParser.json());
 
-  router.initRoutes(app);
+  const router = require('./app/router.js').initRoutes(app);
 
   return app.listen(PORT, () => {
     if (!process.env.IS_TEST) {
@@ -26,6 +25,7 @@ const init = async () => {
   });
 }
 
+// Autostart if not imported
 if (require.main === module) {
     init();
 } else {
