@@ -44,6 +44,7 @@ module.exports.get = async (req, res) => {
     ) AS count
     FROM artists
     ORDER BY count DESC
+    LIMIT 5
   `,
   ).catch(err => {
     console.error(err);
