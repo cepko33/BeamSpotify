@@ -1,6 +1,7 @@
 const Validator = require('jsonschema').Validator
 const Promise = require('bluebird');
 
+// Schema for the full ingest data structure
 const dataSchema = {
   id: '/spotifyData',
   type: 'object',
@@ -11,6 +12,7 @@ const dataSchema = {
   },
 }
 
+// Schema for each element in the list of songs
 const songSchema = {
   id: '/song',
   type: 'object',
@@ -44,6 +46,8 @@ module.exports.post = async (req, res) => {
 
   const [foundUser, userCreated] = await User.findOrCreate({where: {id: user_id}})
 
+  // For each song in the array, find/create the artist then find/create the song
+  // and finally add a Listen associated to the user/artist/song
   await Promise.all(Promise.mapSeries(songs, async (song) => {
     const {
       title,
@@ -87,5 +91,4 @@ module.exports.post = async (req, res) => {
     ]
   };
   */
-
 }

@@ -30,6 +30,8 @@ module.exports = (sequelize) => {
 
   const models = [ User, Artist, Song, Listen, ];
 
+  // Make sure DB is up to date with current model definitions
+  // in case of the Test DB, totally drop and rebuild tables
   const sync = () => {
     if (process.env.IS_TEST)  {
       return Promise.mapSeries(models, model => model.sync({force: true, match: /_test$/ }))

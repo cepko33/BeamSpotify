@@ -33,6 +33,7 @@ describe('starting express', () => {
     });
   });
 
+  // Test is done so close the server process
   afterEach(() => {
     server.close();
   });
@@ -89,7 +90,7 @@ describe('starting express', () => {
     });
   })
 
-  it('Ingests some listens', async () => {
+  it('Ingests some listens then searches for the top artists', async () => {
     let generateIngest = (json) => {
       return request(server)
         .post('/ingest')
@@ -97,17 +98,27 @@ describe('starting express', () => {
         .set('Accept', 'application/json')
     }
 
+    // Ingest the whole inputJSON below
     await Promise.all(inputJSON.map(generateIngest)).catch(err => {
       console.error(err);
     });
 
+    // Get all top artists
     let top = await request(server)
       .get('/top').catch((err) => console.error(err))
 
     console.log(top.body);
 
+    // Get all top artists with plays after 09/09
     top = await request(server)
       .get(`/top?beforeDate=${moment('09/09/2019').toString()}`)
+      .catch((err) => console.error(err))
+
+    console.log(top.body);
+
+    // Get all top artists with plays before 09/09
+    top = await request(server)
+      .get(`/top?afterDate=${moment('09/09/2019').toString()}`)
       .catch((err) => console.error(err))
 
     console.log(top.body);

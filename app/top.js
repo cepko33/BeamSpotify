@@ -1,30 +1,12 @@
-const Validator = require('jsonschema').Validator
 const Promise = require('bluebird');
 const moment = require('moment');
 
 /*
-const dataSchema = {
-  id: '/dateParams',
-  type: 'object',
-  properties: {
-    beforeDate: {type: 'string', format: 'date-time'},
-    afterDate: {type: 'string', format: 'date-time'},
-  },
-}
-
-const v = new Validator();
-*/
-//v.addSchema(songSchema, songSchema.id);
-
+ * Get the top artists by playcount
+ * Accepts `beforeDate` and `afterDate` timestamp query parameters
+ */
 module.exports.get = async (req, res) => {
   const {
-    User,
-    Song,
-    Artist,
-    Listen,
-  } = req.app.models;
-
-  let {
     beforeDate,
     afterDate,
   } = req.query;
@@ -35,20 +17,17 @@ module.exports.get = async (req, res) => {
   const sequelize = req.app.sequelize;
   const Sequelize = sequelize.Sequelize;
 
-  if (beforeDate || afterDate) {
-    whereConditions = `
-      ${beforeDate ? 'AND listens.timestamp <= $beforeDate' : ''}
-      ${afterDate ? 'AND listens.timestamp >= $afterDate' : ''}
-    `;
-
-    if (beforeDate) {
-      bind.beforeDate = moment(beforeDate).toString();
-    }
-    if (afterDate) {
-      bind.afterDate = moment(afterDate).toString();
-    }
+  // Add bindable date strings for the SQL template
+  if (beforeDate) {
+    bind.beforeDate = moment(beforeDate).toString();
   }
 
+  if (afterDate) {
+    bind.afterDate = moment(afterDate).toString();
+  }
+
+  // Use a nested SELECT COUNT query to count the
+  // number of Listens each Artist is associated with
   let [popularArtists, queryData] = await sequelize.query(`
     SELECT
     id,
